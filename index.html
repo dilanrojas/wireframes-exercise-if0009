@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speedrun de Wireframe — Catálogo Tienda de Ropa</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --bg: #f4f4f5;
+      --card: #fff;
+      --line: #111;
+      --mut: #71717a;
+      --soft: #e4e4e7;
+      --mid: #d4d4d8;
+      --err: #dc2626;
+      --ok: #16a34a
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column
+    }
+
+    .topbar {
+      background: var(--card);
+      border-bottom: 2px solid var(--line);
+      padding: .7rem 1rem;
+      display: flex;
+      gap: .75rem;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20
+    }
+
+    .topbar h1 {
+      font-size: 1rem;
+      letter-spacing: .02em
+    }
+
+    .topbar h1 span {
+      background: #111;
+      color: #fff;
+      padding: .1rem .4rem;
+      margin-right: .4rem
+    }
+
+    .meta {
+      display: flex;
+      gap: .6rem;
+      align-items: center;
+      font-size: .9rem
+    }
+
+    #timer {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-weight: 700;
+      background: #111;
+      color: #fff;
+      padding: .3rem .6rem;
+      border-radius: 6px;
+      min-width: 110px;
+      text-align: center
+    }
+
+    #playerChip {
+      border: 2px solid #111;
+      border-radius: 999px;
+      padding: .2rem .7rem;
+      background: #fff;
+      font-weight: 600;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1rem 110px
+    }
+
+    .hint {
+      border: 2px dashed #111;
+      background: #fff;
+      padding: .6rem .8rem;
+      margin-bottom: 1rem;
+      font-size: .9rem
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: 1.25fr .85fr;
+      gap: 1rem;
+      align-items: start
+    }
+
+    .panel {
+      background: var(--card);
+      border: 2px solid var(--line)
+    }
+
+    .panel>h2 {
+      font-size: .9rem;
+      padding: .6rem .8rem;
+      border-bottom: 2px solid var(--line);
+      background: #fafafa;
+      display: flex;
+      justify-content: space-between
+    }
+
+    .mockup {
+      padding: .8rem;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem
+    }
+
+    .zone {
+      border: 2px dashed #52525b;
+      background: #fafafa;
+      min-height: 64px;
+      padding: .35rem;
+      position: relative;
+      transition: .15s
+    }
+
+    .zone[data-zone="3"] {
+      min-height: 110px
+    }
+
+    .zone[data-zone="5"] {
+      min-height: 170px
+    }
+
+    .zone[data-zone="8"] {
+      min-height: 84px
+    }
+
+    .zone-label {
+      font-size: .72rem;
+      color: var(--mut);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: .3rem;
+      text-transform: uppercase;
+      letter-spacing: .04em
+    }
+
+    .zone-num {
+      display: inline-flex;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #111;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #111;
+      background: #fff;
+      font-size: .75rem
+    }
+
+    .zone.empty::after {
+      content: "Suelta / toca aquí";
+      position: absolute;
+      inset: auto 0 6px 0;
+      text-align: center;
+      font-size: .75rem;
+      color: #a1a1aa;
+      pointer-events: none
+    }
+
+    .zone.error {
+      border: 2px solid var(--err);
+      background: #fef2f2;
+      animation: shake .3s
+    }
+
+    .zone.ok {
+      border-style: solid
+    }
+
+    @keyframes shake {
+      25% {
+        transform: translateX(-4px)
+      }
+
+      50% {
+        transform: translateX(4px)
+      }
+
+      75% {
+        transform: translateX(-2px)
+      }
+    }
+
+    .bank-list {
+      padding: .8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .6rem;
+      max-height: 75vh;
+      overflow: auto
+    }
+
+    .piece {
+      border: 2px solid #111;
+      background: #fff;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation
+    }
+
+    .piece:active {
+      transform: scale(.98)
+    }
+
+    .piece .p-head {
+      font-size: .75rem;
+      font-weight: 800;
+      border-bottom: 2px solid #111;
+      padding: .3rem .5rem;
+      display: flex;
+      justify-content: space-between;
+      background: #fff
+    }
+
+    .piece.selected {
+      outline: 4px solid #111;
+      background: #fefce8
+    }
+
+    .piece.in-zone {
+      margin: 0
+    }
+
+    .piece.placed-in-bank {
+      opacity: 1
+    }
+
+    .piece.dim {
+      opacity: .35
+    }
+
+    .p-body {
+      padding: .5rem;
+      background: repeating-linear-gradient(45deg, #fff, #fff 8px, #fafafa 8px, #fafafa 16px)
+    }
+
+    .wire {
+      border: 2px solid #111;
+      background: #fff
+    }
+
+    .imgbox {
+      background: var(--mid);
+      border: 2px solid #111;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden
+    }
+
+    .imgbox::before,
+    .imgbox::after {
+      content: "";
+      position: absolute;
+      width: 140%;
+      height: 2px;
+      background: #71717a
+    }
+
+    .imgbox::before {
+      transform: rotate(18deg)
+    }
+
+    .imgbox::after {
+      transform: rotate(-18deg)
+    }
+
+    .row {
+      display: flex;
+      gap: 6px;
+      align-items: center
+    }
+
+    .col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px
+    }
+
+    .line {
+      height: 8px;
+      background: var(--mid);
+      border: 1px solid #71717a
+    }
+
+    .pill {
+      border: 2px solid #111;
+      border-radius: 999px;
+      padding: .15rem .5rem;
+      font-size: .65rem;
+      background: #fff;
+      text-align: center;
+      flex: 1
+    }
+
+    .btn {
+      border: 2px solid #111;
+      background: #111;
+      color: #fff;
+      padding: .4rem .6rem;
+      font-weight: 700;
+      font-size: .7rem;
+      text-align: center
+    }
+
+    .search {
+      flex: 1;
+      border: 2px solid #111;
+      padding: .25rem .5rem;
+      font-size: .65rem;
+      background: #fff;
+      color: #71717a
+    }
+
+    .avatar {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #111;
+      border-radius: 50%;
+      background: var(--mid);
+      flex: none
+    }
+
+    .iconbox {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #111;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+      font-size: .7rem;
+      font-weight: 800
+    }
+
+    .prod {
+      border: 2px solid #111;
+      background: #fff;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px
+    }
+
+    .prod .imgbox {
+      height: 44px
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px
+    }
+
+    .validate-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #fff;
+      border-top: 2px solid #111;
+      padding: .6rem 1rem;
+      display: flex;
+      gap: .7rem;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      flex-wrap: wrap
+    }
+
+    #feedback {
+      font-size: .85rem;
+      min-height: 1.2em;
+      flex: 1;
+      min-width: 200px;
+      text-align: center
+    }
+
+    #feedback.bad {
+      color: var(--err);
+      font-weight: 700
+    }
+
+    #btnValidate {
+      background: #111;
+      color: #fff;
+      border: 2px solid #111;
+      padding: .8rem 1.4rem;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    #btnValidate:active {
+      transform: translateY(1px)
+    }
+
+    #btnReset {
+      background: #fff;
+      border: 2px solid #111;
+      padding: .8rem 1rem;
+      font-weight: 700;
+      cursor: pointer
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 50
+    }
+
+    .card {
+      background: #fff;
+      border: 3px solid #111;
+      max-width: 440px;
+      width: 100%;
+      padding: 1.5rem;
+      text-align: center
+    }
+
+    .card h2 {
+      font-size: 1.4rem;
+      margin: .6rem 0
+    }
+
+    .card p {
+      font-size: .92rem;
+      color: #3f3f46;
+      margin: .4rem 0
+    }
+
+    .card input {
+      width: 100%;
+      border: 2px solid #111;
+      padding: .8rem;
+      font-size: 1rem;
+      margin: .8rem 0
+    }
+
+    .card button {
+      background: #111;
+      color: #fff;
+      border: 2px solid #111;
+      padding: .85rem 1rem;
+      width: 100%;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer
+    }
+
+    .bigtime {
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 2rem;
+      font-weight: 800;
+      border: 2px dashed #111;
+      padding: .4rem;
+      margin: .7rem 0;
+      background: #fafafa
+    }
+
+    .trophy {
+      width: 56px;
+      height: 56px;
+      border: 3px solid #111;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      background: #fefce8
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    .dragover {
+      outline: 4px solid #111;
+      background: #fefce8 !important
+    }
+
+    @media(max-width:900px) {
+      .board {
+        grid-template-columns: 1fr
+      }
+
+      .bank-list {
+        grid-template-columns: 1fr 1fr;
+        max-height: none
+      }
+
+      .topbar h1 {
+        font-size: .85rem
+      }
+
+      #btnValidate {
+        flex: 1
+      }
+    }
+
+    @media(max-width:480px) {
+      .bank-list {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .grid3 {
+        grid-template-columns: 1fr 1fr 1fr
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <h1><span>WIREFRAME</span>SPEEDRUN · Catálogo Ropa</h1>
+    <div class="meta"><span id="playerChip">—</span><span id="timer">00:00.00</span></div>
+  </header>
+
+  <!-- BIENVENIDA -->
+  <div id="welcome" class="overlay">
+    <div class="card">
+      <div class="trophy">◧</div>
+      <h2>Speedrun de Wireframe</h2>
+      <p>Arma la <b>Página de Catálogo de Tienda de Ropa</b>.<br>Coloca A–H en zonas 1–8. I y J son distractores
+        (déjalos fuera).</p>
+      <p style="font-size:.8rem">🖱️ Arrastra o 👆 toca pieza → toca zona.<br>Toca una pieza colocada para devolverla.
+      </p>
+      <input id="nameInput" maxlength="20" placeholder="Nombre / Apodo" autocomplete="off">
+      <button id="btnStart">Iniciar Desafío ▶</button>
+    </div>
+  </div>
+
+  <main id="game" class="hidden">
+    <div class="hint" id="progressHint">Toca una pieza y luego una zona. En PC también puedes arrastrar. Llevas <b
+        id="count">0/8</b> colocadas.</div>
+    <div class="board">
+      <section class="panel">
+        <h2>📐 MAQUETA VACÍA <span>1 → 8</span></h2>
+        <div class="mockup" id="mockup"></div>
+      </section>
+      <section class="panel">
+        <h2>🧩 BANCO DE PIEZAS <span>10 bloques</span></h2>
+        <div class="bank-list" id="bank"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="gameBar" class="validate-bar hidden">
+    <p id="feedback">Ordena las 8 piezas y valida.</p>
+    <button id="btnReset" type="button">↩ Devolver piezas</button>
+    <button id="btnValidate" type="button">Validar Wireframe ✓</button>
+  </div>
+
+  <!-- VICTORIA -->
+  <div id="victory" class="overlay hidden">
+    <div class="card">
+      <div class="trophy">🏆</div>
+      <h2>¡Wireframe Correcto!</h2>
+      <p>Felicidades, <b id="winName">—</b></p>
+      <div class="bigtime" id="winTime">00:00.00 s</div>
+      <p><b>¡Toma una captura de pantalla y muéstrasela al expositor!</b></p>
+      <button id="btnAgain" style="margin-top:.8rem">Jugar de nuevo ↻</button>
+    </div>
+  </div>
+
+  <script>
+    const CORRECT = {1: 'A', 2: 'B', 3: 'C', 4: 'D', 5: 'E', 6: 'F', 7: 'G', 8: 'H'};
+    const ZONE_NAMES = {1: 'Encabezado', 2: 'Categorías', 3: 'Promoción destacada', 4: 'Filtros / Orden', 5: 'Productos', 6: 'Paginación', 7: 'Beneficios', 8: 'Pie de página'};
+    const PIECE_TITLES = {A: 'A · Header', B: 'B · Categorías', C: 'C · Hero Banner', D: 'D · Filtros', E: 'E · Grid Productos', F: 'F · Paginador', G: 'G · Beneficios', H: 'H · Footer', I: 'I · Pago (¿?)', J: 'J · Términos (¿?)'};
+
+    const mockup = document.getElementById('mockup'), bank = document.getElementById('bank'),
+      timerEl = document.getElementById('timer'), feedback = document.getElementById('feedback'),
+      countEl = document.getElementById('count');
+    let selected = null, startT = 0, timerId = null, player = '';
+
+    function preview(k) {
+      switch (k) {
+        case 'A': return `<div class="row"><div class="wire" style="padding:.2rem .4rem;font-weight:800;font-size:.7rem">LOGO</div><div class="search">⌕ Buscar…</div><div class="iconbox">🛒</div><div class="avatar"></div></div>`;
+        case 'B': return `<div class="row"><div class="pill">Mujer</div><div class="pill">Hombre</div><div class="pill">Niños</div><div class="pill">Sale</div></div>`;
+        case 'C': return `<div class="imgbox" style="height:64px"><b style="z-index:1;background:#fff;border:2px solid #111;padding:.1rem .4rem;font-size:.7rem">HERO -50%</b></div><div class="line" style="margin-top:6px"></div><div class="line" style="width:60%"></div>`;
+        case 'D': return `<div class="row"><div class="wire" style="font-size:.65rem;padding:.25rem .5rem">☰ Filtros</div><div class="line" style="flex:1"></div><div class="wire" style="font-size:.65rem;padding:.25rem .5rem">Ordenar ▾</div></div>`;
+        case 'E': return `<div class="grid3">${[1, 2, 3].map(() => `<div class="prod"><div class="imgbox" style="height:40px"></div><div class="line"></div><div class="line" style="width:50%"></div><div class="btn">Ver</div></div>`).join('')}</div>`;
+        case 'F': return `<div class="row" style="justify-content:center"><div class="iconbox">1</div><div class="iconbox">2</div><div class="iconbox">3</div><div class="iconbox">›</div></div>`;
+        case 'G': return `<div class="row">${['🚚 Envío', '🛡️ Garantía', '💳 Pagos'].map(t => `<div class="col" style="flex:1;align-items:center"><div class="iconbox">✓</div><div style="font-size:.6rem;font-weight:700">${t}</div></div>`).join('')}</div>`;
+        case 'H': return `<div class="grid3"><div class="col"><div class="line"></div><div class="line"></div><div class="line"></div></div><div class="col"><div class="line"></div><div class="line"></div><div class="line"></div></div><div class="col"><div class="line"></div><div class="line"></div><div class="line"></div></div></div><div class="line" style="margin-top:6px"></div>`;
+        case 'I': return `<div class="wire" style="padding:.4rem"><div style="font-size:.7rem;font-weight:800;margin-bottom:4px">💳 Pago / Tarjeta</div><div class="col"><div class="wire" style="font-size:.65rem;padding:.2rem;color:#71717a">Número tarjeta</div><div class="row"><div class="wire" style="flex:1;font-size:.65rem;padding:.2rem;color:#71717a">MM/AA</div><div class="wire" style="flex:1;font-size:.65rem;padding:.2rem;color:#71717a">CVV</div></div><div class="btn">Pagar</div></div></div>`;
+        case 'J': return `<div class="wire" style="padding:.4rem"><div style="font-size:.7rem;font-weight:800">📄 Términos y Condiciones</div><div class="line" style="margin-top:4px"></div><div class="line"></div><div class="line" style="width:70%"></div><div class="row" style="margin-top:4px"><div class="btn" style="background:#fff;color:#111;flex:1">Cerrar</div><div class="btn" style="flex:1">Aceptar</div></div></div>`;
+      }return '';
+    }
+
+    function build() {
+      mockup.innerHTML = ''; bank.innerHTML = '';
+      for (let z = 1; z <= 8; z++) {
+        const d = document.createElement('div'); d.className = 'zone empty'; d.dataset.zone = z;
+        d.innerHTML = `<div class="zone-label"><span><span class="zone-num">${z}</span> Zona ${z}: ${ZONE_NAMES[z]}</span><span>?</span></div>`;
+        d.addEventListener('click', onZoneClick); d.addEventListener('dragover', e => {e.preventDefault(); d.classList.add('dragover')});
+        d.addEventListener('dragleave', () => d.classList.remove('dragover'));
+        d.addEventListener('drop', e => {e.preventDefault(); d.classList.remove('dragover'); const id = e.dataTransfer.getData('text/plain'); placeInZone(id, z)}); mockup.appendChild(d);
+      }
+      let keys = Object.keys(PIECE_TITLES);
+      for (let i = keys.length - 1; i > 0; i--) {const j = Math.floor(Math.random() * (i + 1));[keys[i], keys[j]] = [keys[j], keys[i]];}
+      keys.forEach(k => bank.appendChild(makePiece(k)));
+      bank.addEventListener('dragover', e => e.preventDefault());
+      bank.addEventListener('drop', e => {e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); returnToBank(id)});
+    }
+
+    function makePiece(k) {
+      const a = document.createElement('article'); a.className = 'piece'; a.dataset.piece = k; a.draggable = true; a.id = 'piece-' + k;
+      a.innerHTML = `<div class="p-head"><span>${PIECE_TITLES[k]}</span><span>⋮⋮</span></div><div class="p-body">${preview(k)}</div>`;
+      a.addEventListener('click', e => {e.stopPropagation(); onPieceClick(k)});
+      a.addEventListener('dragstart', e => {e.dataTransfer.setData('text/plain', k); e.dataTransfer.effectAllowed = 'move'}); return a;
+    }
+
+    function onPieceClick(k) {
+      const el = document.getElementById('piece-' + k);
+      if (el.parentElement.classList.contains('zone')) {returnToBank(k); return;}
+      if (selected === k) {deselect(); return;}
+      deselect(); selected = k; el.classList.add('selected');
+      feedback.textContent = `Pieza ${k} seleccionada → toca una zona.`; feedback.className = '';
+    }
+
+    function deselect() {selected = null; document.querySelectorAll('.piece.selected').forEach(x => x.classList.remove('selected'));}
+    function clearErrors() {document.querySelectorAll('.zone.error').forEach(x => x.classList.remove('error'));}
+
+    function onZoneClick(e) {
+      const z = +e.currentTarget.dataset.zone, zoneEl = e.currentTarget;
+      const placed = zoneEl.querySelector('.piece');
+      if (placed && !selected) {returnToBank(placed.dataset.piece); return;}
+      if (!selected) {feedback.textContent = 'Primero toca una pieza del banco.'; feedback.className = ''; return;}
+      placeInZone(selected, z);
+    }
+
+    function placeInZone(k, z) {
+      if (!k) return; const piece = document.getElementById('piece-' + k); if (!piece) return;
+      const zone = mockup.querySelector(`[data-zone="${z}"]`);
+      const existing = zone.querySelector('.piece');
+      if (existing && existing.dataset.piece !== k) {bank.appendChild(existing); existing.classList.remove('in-zone');}
+      if (piece.parentElement.classList.contains('zone') && piece.parentElement !== zone) { }
+      zone.appendChild(piece); piece.classList.add('in-zone'); piece.classList.remove('selected');
+      clearErrors(); deselect(); updateCount(); refreshBankDim();
+      feedback.textContent = 'Pieza colocada. Puedes tocarla para devolverla o Validar.'; feedback.className = '';
+    }
+
+    function returnToBank(k) {
+      if (!k) return; const p = document.getElementById('piece-' + k); if (!p) return;
+      bank.appendChild(p); p.classList.remove('in-zone'); if (selected === k) deselect(); clearErrors(); updateCount(); refreshBankDim();
+    }
+
+    function refreshBankDim() {const inZones = new Set([...mockup.querySelectorAll('.piece')].map(p => p.dataset.piece)); updateCount();}
+    function updateCount() {const n = mockup.querySelectorAll('.piece').length; countEl.textContent = n + '/8'; document.querySelectorAll('.zone').forEach(z => z.classList.toggle('empty', !z.querySelector('.piece')));}
+
+    function fmt(ms) {const cs = Math.floor(ms / 10) % 100, s = Math.floor(ms / 1000) % 60, m = Math.floor(ms / 60000); return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + String(cs).padStart(2, '0');}
+    function tick() {timerEl.textContent = fmt(Date.now() - startT);}
+
+    document.getElementById('btnStart').addEventListener('click', () => {
+      const v = document.getElementById('nameInput').value.trim();
+      if (!v) {alert('Ingresa tu Nombre / Apodo'); return;}
+      player = v; document.getElementById('playerChip').textContent = '👤 ' + player;
+      document.getElementById('welcome').classList.add('hidden');
+      document.getElementById('game').classList.remove('hidden');
+      document.getElementById('gameBar').classList.remove('hidden');
+      startT = Date.now(); clearInterval(timerId); timerId = setInterval(tick, 47); tick();
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+      [...mockup.querySelectorAll('.piece')].forEach(p => {bank.appendChild(p); p.classList.remove('in-zone')});
+      deselect(); clearErrors(); updateCount(); feedback.textContent = 'Tablero vaciado. El tiempo sigue.'; feedback.className = '';
+    });
+
+    document.getElementById('btnValidate').addEventListener('click', () => {
+      let bad = 0, missing = 0; clearErrors();
+      for (let z = 1; z <= 8; z++) {
+        const zone = mockup.querySelector(`[data-zone="${z}"]`); const p = zone.querySelector('.piece');
+        if (!p) {zone.classList.add('error'); missing++; bad++;}
+        else if (p.dataset.piece !== CORRECT[z]) {zone.classList.add('error'); bad++;} else {zone.classList.add('ok'); setTimeout(() => zone.classList.remove('ok'), 1200);}
+      }
+      if (bad > 0) {feedback.textContent = `❌ ${bad} zona(s) con error${missing ? ` (${missing} vacías)` : ''}. Corrige, el tiempo NO se detiene.`; feedback.className = 'bad'; return;}
+      clearInterval(timerId); const total = fmt(Date.now() - startT);
+      document.getElementById('winName').textContent = player;
+      document.getElementById('winTime').textContent = total + ' s';
+      document.getElementById('victory').classList.remove('hidden');
+    });
+
+    document.getElementById('btnAgain').addEventListener('click', () => location.reload());
+    build(); updateCount();
+  </script>
+</body>
+
+</html>
